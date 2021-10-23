@@ -2,7 +2,6 @@
 pub struct User {
     pub id: u32,
     pub name: String,
-    pub signature: Option<String>,
 
     pub email: String,
     pub password: String,
@@ -14,7 +13,6 @@ use super::schema::users;
 #[table_name = "users"]
 pub struct NewUser<'s> {
     pub name: &'s str,
-    pub signature: Option<&'s str>,
 
     pub email: &'s str,
     pub password: String,
@@ -27,7 +25,6 @@ impl<'s> NewUser<'s> {
     {
         Self {
             name: self.name,
-            signature: self.signature,
             email: self.email,
             password: handle(&self.password),
         }

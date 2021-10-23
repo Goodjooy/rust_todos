@@ -25,5 +25,6 @@ fn connect_database() -> mysql::MysqlConnection {
 fn launch() -> _ {
     rocket::build()
         .manage(Mutex::new(connect_database()))
+       
        .mount(UserAuthCtrl::base(), UserAuthCtrl::routes())
 }

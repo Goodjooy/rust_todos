@@ -39,13 +39,13 @@ impl NewUser<'_> {
             && check_password_size(&self.password)
     }
 }
-pub fn check_email_used(email: &str, db: &Mutex<mysql::MysqlConnection>) -> bool {
+pub fn check_email_used(mail: &str, db: &Mutex<mysql::MysqlConnection>) -> bool {
     use crate::models::schema::users::dsl::*;
 
     let db = db.lock().unwrap();
     use diesel::ExpressionMethods;
     let res = users
-        .filter(email.eq(email))
+        .filter(email.eq(mail))
         .count()
         .get_result::<i64>(&*db);
 
