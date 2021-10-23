@@ -1,10 +1,6 @@
-use rocket::http::Cookie;
-use rocket::http::CookieJar;
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use serde::Serialize;
-use std::time::Duration;
-use std::time::SystemTime;
+use rocket::http::{Cookie, CookieJar};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::time::{Duration, SystemTime};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AuthKey<T>

@@ -10,7 +10,7 @@ use crate::{
 
 use super::{auth_key::AuthKey, COOKIE_NAME};
 
-const EMAIL_REGEX: &str = r#"^\\w+([-_.]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,6})+$"#;
+const EMAIL_REGEX: &str = r#"^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$"#;
 
 pub enum AuthError<'a> {
     Diesel(diesel::result::Error),
@@ -23,62 +23,55 @@ pub fn password_hash(password: &str) -> String {
     hasher.result_str()
 }
 
-pub fn check_login(cookies: &CookieJar<'_>, db: &Mutex<mysql::MysqlConnection>) -> Option<User> {
+pub fn check_login(cookies: &CookieJar<'_>) -> Option<UserAuth> {
     let cookie = cookies.get_private(COOKIE_NAME)?;
 
     let auth_key = AuthKey::<UserAuth>::from_cookie(cookie, COOKIE_NAME, cookies)?;
 
-    let res = {
-        use crate::models::schema::users::dsl::*;
-        use diesel::ExpressionMethods;
-        let db = db.lock().expect("Mutex Failure");
-        if let Some(aid) = auth_key.id {
-            users.filter(id.eq(aid)).limit(1).load::<User>(&*db)
-        } else {
-            users
-                .filter(email.eq(&auth_key.email))
-                .filter(password.eq(&auth_key.paswd))
-                .limit(1)
-                .load::<User>(&*db)
-        }
-        .expect("Find User Failure")
-    };
-    if res.len() == 1 {
-        res.into_iter().next()
-    } else {
-        None
-    }
+    Some(auth_key)
 }
 
 impl NewUser<'_> {
     pub fn check_able(&self, db: &Mutex<mysql::MysqlConnection>) -> bool {
-        self.check_email_avaiable() && self.check_email_used(db)
+        check_email_avaiable(self.email)
+            && check_email_used(self.email, db)
+            && check_name_size(self.name)
+            && check_password_size(&self.password)
     }
+}
+pub fn check_email_used(email: &str, db: &Mutex<mysql::MysqlConnection>) -> bool {
+    use crate::models::schema::users::dsl::*;
 
-    fn check_email_used(&self, db: &Mutex<mysql::MysqlConnection>) -> bool {
-        use crate::models::schema::users::dsl::*;
+    let db = db.lock().unwrap();
+    use diesel::ExpressionMethods;
+    let res = users
+        .filter(email.eq(email))
+        .count()
+        .get_result::<i64>(&*db);
 
-        let db = db.lock().unwrap();
-        use diesel::ExpressionMethods;
-        let res = users
-            .filter(email.eq(&self.email))
-            .count()
-            .get_result::<i64>(&*db);
-
-        if let Ok(num) = res {
-            if num == 0 {
-                true
-            } else {
-                false
-            }
-        } else {
+    if let Ok(num) = res {
+        if num == 0 {
             true
+        } else {
+            false
         }
+    } else {
+        true
     }
-    fn check_email_avaiable(&self) -> bool {
-        let reg = regex::Regex::new(EMAIL_REGEX).unwrap();
+}
+pub fn check_email_avaiable(email: &str) -> bool {
+    let reg = regex::Regex::new(EMAIL_REGEX).unwrap();
 
-        reg.is_match(self.email)
+    reg.is_match(email) && email.len() <= 128
+}
+
+pub fn check_name_size(name: &str) -> bool {
+    name.len() <= 32
+}
+pub fn check_password_size(passwd: &str) -> bool {
+    match passwd.len() {
+        s if (s < 8 || s > 64) => false,
+        _ => true,
     }
 }
 
@@ -97,7 +90,7 @@ impl UserAuth {
 
         let db = db.lock()?;
         let res = if let Some(aid) = self.id {
-            users.filter(id.eq(aid)).limit(1).first::<User>(&*db)
+            users.filter(id.eq(aid)).first::<User>(&*db)
         } else {
             users
                 .filter(email.eq(&self.email))
@@ -108,6 +101,7 @@ impl UserAuth {
         Ok(res)
     }
 }
+
 impl<'a> From<PoisonError<MutexGuard<'a, mysql::MysqlConnection>>> for AuthError<'a> {
     fn from(src: PoisonError<MutexGuard<'a, mysql::MysqlConnection>>) -> Self {
         Self::Mutex(src.into_inner())
