@@ -1,7 +1,7 @@
 use std::vec;
 
 pub mod auth;
-
+pub mod user_detail;
 
 
 pub trait Controller {

@@ -18,15 +18,3 @@ pub struct NewUser<'s> {
     pub password: String,
 }
 
-impl<'s> NewUser<'s> {
-    pub fn encode_password<F>(&self, handle: F) -> Self
-    where
-        F: Fn(&str) -> String,
-    {
-        Self {
-            name: self.name,
-            email: self.email,
-            password: handle(&self.password),
-        }
-    }
-}

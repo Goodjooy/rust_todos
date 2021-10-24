@@ -1,9 +1,12 @@
 use crate::{
+    database::DatabaseConnection,
     forms::auth::{ChangePaswd, UserAuth},
     generate_controller,
-    models::user::{NewUser, User},
+    models::{
+        user::{NewUser, User},
+    },
 };
-use diesel::{mysql, ExpressionMethods, QueryDsl, RunQueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use rocket::{
     http::{Cookie, CookieJar, Status},
     post,
@@ -11,7 +14,7 @@ use rocket::{
     serde::json::Json,
     State,
 };
-use std::{sync::Mutex, time::Duration};
+use std::time::Duration;
 
 use self::{
     auth_key::AuthKey,
@@ -37,7 +40,7 @@ generate_controller!(
 #[post("/login", data = "<input>")]
 fn user_auth(
     input: Json<UserAuth>,
-    db: &State<Mutex<mysql::MysqlConnection>>,
+    db: &State<DatabaseConnection>,
     cookies: &CookieJar<'_>,
 ) -> (Status, String) {
     if let Some(user) = check_login(cookies).and_then(|f| f.into_full_user(db).ok()) {
@@ -75,21 +78,23 @@ fn user_auth(
 #[post("/signup", data = "<data>")]
 fn new_user(
     data: Json<NewUser>,
-    db: &State<Mutex<mysql::MysqlConnection>>,
+    db: &State<DatabaseConnection>,
     cookies: &CookieJar<'_>,
 ) -> status::Accepted<String> {
     if let Some(user) = check_login(cookies).and_then(|f| f.into_full_user(db).ok()) {
         status::Accepted(Some(format!("You Has Been logined {}", user.name)))
     } else {
         if data.check_able(db) {
-            use crate::models::schema::users::dsl::*;
             let db = &*db.lock().expect("Lock Mutex Error");
+
+            use crate::models::schema::users::dsl::*;
             let data = data.encode_password(password_hash);
 
             diesel::insert_into(users)
                 .values(&data)
                 .execute(db)
                 .expect("Insert User Error");
+
             status::Accepted(Some(format!("New Account Create : name:{}", data.name)))
         } else {
             status::Accepted(Some(format!("Email can not be use [{}|<=128] Or Name[{}|<=32],Password[8=<|{}|<=64] Over Limit Size", 
@@ -114,7 +119,7 @@ fn change_passwd(
     data: Json<ChangePaswd>,
     user_auth: UserAuth,
     cookies: &CookieJar<'_>,
-    db: &State<Mutex<mysql::MysqlConnection>>,
+    db: &State<DatabaseConnection>,
 ) -> Option<String> {
     let new_hash = password_hash(&data.new);
     if data.old == user_auth.paswd && data.new == data.new_conf && check_password_size(&data.new) {
@@ -132,7 +137,7 @@ fn change_passwd(
         // update cookies
         let mut ua = user_auth.clone();
         ua.paswd = (&data.new).into();
-        
+
         let auth = AuthKey::new_cookie(COOKIE_NAME, ua, Duration::from_secs(AUTH_LIFE_TIME));
         cookies.add_private(auth);
 
