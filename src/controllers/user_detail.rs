@@ -20,10 +20,10 @@ fn set_detail(
     let i_detail = SetDetail::from_uath(&auth, &input);
 
     let res = {
-        use crate::models::schema::uesr_details::dsl::*;
+        use crate::models::schema::user_details::dsl::*;
         let db = db.lock().ok()?;
 
-        if let Ok(ud) = uesr_details
+        if let Ok(ud) = user_details
             .filter(uid.eq(auth.get_id()?))
             .first::<UserDetail>(&*db)
         {
@@ -31,7 +31,7 @@ fn set_detail(
                 .set(signature.eq(&input.signature))
                 .execute(&*db)
         } else {
-            diesel::insert_into(uesr_details)
+            diesel::insert_into(user_details)
                 .values(&i_detail)
                 .execute(&*db)
         }
@@ -47,18 +47,18 @@ fn load_detail(
     auser: UserAuth,
     db: &State<DatabaseConnection>,
 ) -> Option<rocket::response::content::Json<JUserDetail>> {
-    use crate::models::schema::uesr_details::dsl::*;
+    use crate::models::schema::user_details::dsl::*;
 
     let user_id = auser.get_id()?;
     let db = db.get().ok()?;
 
-    let det = uesr_details
+    let det = user_details
         .filter(uid.eq(user_id))
         .first::<UserDetail>(&db)
         .and_then(|f| Ok(f.into_jdetail()))
         .unwrap_or_else(|_| {
             let seter = SetDetail::new_def(user_id);
-            diesel::insert_into(uesr_details)
+            diesel::insert_into(user_details)
                 .values(&seter)
                 .execute(&db)
                 .expect("Failure Insert data");

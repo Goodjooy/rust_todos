@@ -1,6 +1,4 @@
-use std::sync::Mutex;
-
-use diesel::{mysql, QueryDsl, RunQueryDsl};
+use diesel::{QueryDsl, RunQueryDsl};
 
 use crate::{database::DatabaseConnection, forms::auth::UserAuth, models::user::User};
 
@@ -12,10 +10,7 @@ impl UserAuth {
         Some(*res)
     }
 
-    pub fn into_full_user<'a>(
-        &self,
-        db: &'a DatabaseConnection,
-    ) -> Result<User, AuthError<'a>> {
+    pub fn into_full_user<'a>(&self, db: &'a DatabaseConnection) -> Result<User, AuthError<'a>> {
         use crate::models::schema::users::dsl::*;
         use diesel::ExpressionMethods;
 

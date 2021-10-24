@@ -1,6 +1,6 @@
-use std::sync::Mutex;
 
-use diesel::{mysql, QueryDsl, RunQueryDsl};
+
+use diesel::{QueryDsl, RunQueryDsl};
 
 use crate::{database::DatabaseConnection, models::user::NewUser};
 const EMAIL_REGEX: &str = r#"^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$"#;
