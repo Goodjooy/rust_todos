@@ -1,5 +1,5 @@
 table! {
-    user_details (id) {
+    uesr_details (id) {
         id -> Unsigned<Integer>,
         uid -> Unsigned<Integer>,
         signature -> Text,
@@ -16,6 +16,6 @@ table! {
 }
 
 allow_tables_to_appear_in_same_query!(
-    user_details,
+    uesr_details,
     users,
 );

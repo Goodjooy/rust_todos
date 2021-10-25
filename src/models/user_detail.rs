@@ -1,9 +1,9 @@
 use crate::forms::{self, auth::UserAuth, user_detail::JUserDetail};
 
-use super::schema::user_details;
+use super::schema::uesr_details;
 
 #[derive(Queryable, Identifiable)]
-#[table_name = "user_details"]
+#[table_name = "uesr_details"]
 pub struct UserDetail {
     pub id: u32,
     pub uid: u32,
@@ -30,7 +30,7 @@ impl UserDetail {
 }
 
 #[derive(serde::Deserialize, Insertable)]
-#[table_name = "user_details"]
+#[table_name = "uesr_details"]
 pub struct SetDetail<'s> {
     pub uid: u32,
     pub signature: &'s str,
@@ -61,5 +61,17 @@ impl<'s> SetDetail<'s> {
             uid: auser.get_id()?,
             signature: &data.signature,
         })
+    }
+}
+
+impl Into<JUserDetail> for UserDetail {
+    fn into(self) -> JUserDetail {
+        self.into_jdetail()
+    }
+}
+
+impl <'s> Into<JUserDetail> for SetDetail<'s>  {
+    fn into(self) -> JUserDetail {
+        self.into_jdetail()
     }
 }

@@ -10,7 +10,7 @@ impl UserAuth {
         Some(*res)
     }
 
-    pub fn into_full_user<'a>(&self, db: &'a DatabaseConnection) -> Result<User, AuthError<'a>> {
+    pub fn into_full_user<'a>(&self, db: &'a DatabaseConnection) -> Result<User, AuthError> {
         use crate::models::schema::users::dsl::*;
         use diesel::ExpressionMethods;
 

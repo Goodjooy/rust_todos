@@ -45,3 +45,88 @@ impl DatabaseConnection {
         self.get()
     }
 }
+
+#[macro_export]
+macro_rules! first_or_create {
+    ($db:expr, $ty:ident, $t:ident, $tc:expr, $($filters : expr ),*) => {
+        match $t
+            $(.filter($filters))*
+            .first::<$ty>($db){
+            Ok(d) => d.into(),
+            Err(_) => {
+                to_rresult!(rs, 
+                    diesel::insert_into(uesr_details)
+                    .values(&$tc)
+                    .execute($db)
+                );
+                $tc.into()
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! update_first_or_create {
+    (
+        $db:expr,
+        $ty:ident,
+        $table:ident,
+        $in_data:expr,
+        filter => [ $($f:expr),* ],
+        set => [$($s:expr),*]
+    ) => {
+        if let Ok(ud) = $table
+            $(.filter($f))*
+            .first::<$ty>($db)
+        {
+            diesel::update(&ud)
+                $(.set($s))*
+                .execute($db)
+        } else {
+            diesel::insert_into($table)
+                .values(&$in_data)
+                .execute($db)
+        }
+    };
+    (
+        $db:expr,
+        $ty:ident,
+        $table:ident,
+        $in_data:expr,
+        pk => $pk:expr,
+        set => [$($s:expr),*]
+    ) => {
+        if let Ok(ud) = $table
+            .find($pk)
+            .first::<$ty>($db)
+        {
+            diesel::update(&ud)
+                $(.set($s))*
+                .execute($db)
+        } else {
+            diesel::insert_into($table)
+                .values(&$in_data)
+                .execute($db)
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! load_first {
+    ($db:expr,$ty:ident, $table:ident, $( $f:expr ),* ) => {
+        $table
+        $(.filter($f))*
+        .first::<$ty>($db)
+    };
+    ($db:expr,$ty:ident, $table:ident,pk=>$pk:expr ) => {
+        $table
+        .find($pk)
+        .first::<$ty>($db)
+    };
+}
+
+#[macro_export]
+macro_rules! insert_into {
+    ($db:expr,$table:ident,$value:expr) => {
+        diesel::insert_into($table).values($value).execute($db)
+    };
+}

@@ -1,7 +1,7 @@
-use crate::DatabaseConnection;
+use crate::{first_or_create, forms::RResult, to_rresult, DatabaseConnection};
 
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
-use rocket::{get, http::Status, post, response::content, serde::json::Json, State};
+use rocket::{get, post, serde::json::Json, State};
 
 use crate::{
     forms::{auth::UserAuth, user_detail::JUserDetail},
@@ -16,54 +16,45 @@ fn set_detail(
     auth: UserAuth,
     input: Json<JUserDetail>,
     db: &State<DatabaseConnection>,
-) -> Option<(Status, String)> {
+) -> RResult<String> {
     let i_detail = SetDetail::from_uath(&auth, &input);
 
-    let res = {
-        use crate::models::schema::user_details::dsl::*;
-        let db = db.lock().ok()?;
+    let res = to_rresult!(rs, {
+        use crate::models::schema::uesr_details::dsl::*;
+        let db = to_rresult!(rs, db.get());
 
-        if let Ok(ud) = user_details
-            .filter(uid.eq(auth.get_id()?))
-            .first::<UserDetail>(&*db)
-        {
-            diesel::update(&ud)
-                .set(signature.eq(&input.signature))
-                .execute(&*db)
-        } else {
-            diesel::insert_into(user_details)
-                .values(&i_detail)
-                .execute(&*db)
-        }
-    }
-    .ok()?;
-    Some((
-        Status::Ok,
-        format!("updata info success({}) [ {} ]", res, &input.signature),
+        crate::update_first_or_create!(
+            &db,
+            UserDetail,
+            uesr_details,
+            i_detail,
+            filter => [
+                uid.eq(to_rresult!(op, auth.get_id(), "AUTH ID Not exist"))
+                ],
+            set => [
+                signature.eq(&input.signature)
+                ]
+        )
+    });
+    RResult::ok(format!(
+        "updata info success({}) [ {} ]",
+        res, &input.signature
     ))
 }
 #[get("/detail")]
-fn load_detail(
-    auser: UserAuth,
-    db: &State<DatabaseConnection>,
-) -> Option<rocket::response::content::Json<JUserDetail>> {
-    use crate::models::schema::user_details::dsl::*;
+fn load_detail(auser: UserAuth, db: &State<DatabaseConnection>) -> RResult<JUserDetail> {
+    use crate::models::schema::uesr_details::dsl::*;
 
-    let user_id = auser.get_id()?;
-    let db = db.get().ok()?;
+    let user_id = to_rresult!(op, auser.get_id(), "unKnow Auth ID");
+    let db = to_rresult!(rs, db.get());
 
-    let det = user_details
-        .filter(uid.eq(user_id))
-        .first::<UserDetail>(&db)
-        .and_then(|f| Ok(f.into_jdetail()))
-        .unwrap_or_else(|_| {
-            let seter = SetDetail::new_def(user_id);
-            diesel::insert_into(user_details)
-                .values(&seter)
-                .execute(&db)
-                .expect("Failure Insert data");
-            seter.into_jdetail()
-        });
-
-    Some(content::Json(det))
+    let det: JUserDetail = first_or_create!(
+        &db,
+        UserDetail,
+        uesr_details,
+        SetDetail::new_def(user_id),
+        uid.eq(user_id)
+    );
+    RResult::ok(det)
 }
+

@@ -1,14 +1,16 @@
 use crate::{
     database::DatabaseConnection,
-    forms::auth::{ChangePaswd, UserAuth},
-    generate_controller,
-    models::{
-        user::{NewUser, User},
+    forms::{
+        auth::{ChangePaswd, UserAuth},
+        RResult,
     },
+    generate_controller,
+    models::user::{NewUser, User},
+    to_rresult, update_first_or_create,
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use rocket::{
-    http::{Cookie, CookieJar, Status},
+    http::{Cookie, CookieJar},
     post,
     response::status,
     serde::json::Json,
@@ -42,37 +44,33 @@ fn user_auth(
     input: Json<UserAuth>,
     db: &State<DatabaseConnection>,
     cookies: &CookieJar<'_>,
-) -> (Status, String) {
+) -> RResult<String> {
     if let Some(user) = check_login(cookies).and_then(|f| f.into_full_user(db).ok()) {
-        return (
-            Status::AlreadyReported,
-            format!("you[{}] have logined", user.name),
-        );
+        return RResult::err(format!("you[{}] have logined", user.name));
     }
     let hashed_pwd = password_hash(&input.paswd);
 
     let res = {
         use crate::models::schema::users::dsl::*;
-        let db = db.lock().expect("Mutex Failure");
-        users
-            .filter(email.eq(&input.email))
-            .filter(password.eq(&hashed_pwd))
-            .first::<User>(&*db)
+        let db = to_rresult!(rs, db.get());
+        crate::load_first!(
+            &db,
+            User,
+            users,
+            email.eq(&input.email),
+            password.eq(&hashed_pwd)
+        )
     };
+    let user = to_rresult!(rs, res, "Wrong Password Or Email Address");
+    let mut u = input.0.clone();
+    u.id = Some(user.id);
+    cookies.add_private(AuthKey::new_cookie(
+        COOKIE_NAME,
+        u,
+        Duration::from_secs(AUTH_LIFE_TIME),
+    ));
 
-    if let Ok(user) = res {
-        let mut u = input.0.clone();
-        u.id = Some(user.id);
-        cookies.add_private(AuthKey::new_cookie(
-            COOKIE_NAME,
-            u,
-            Duration::from_secs(AUTH_LIFE_TIME),
-        ));
-
-        (Status::Ok, format!("User[{}] login success", user.name))
-    } else {
-        (Status::Forbidden, "Wrong Password Or Email Address".into())
-    }
+    RResult::ok(format!("User[{}] login success", user.name))
 }
 
 #[post("/signup", data = "<data>")]
@@ -80,25 +78,25 @@ fn new_user(
     data: Json<NewUser>,
     db: &State<DatabaseConnection>,
     cookies: &CookieJar<'_>,
-) -> status::Accepted<String> {
+) -> RResult<String> {
     if let Some(user) = check_login(cookies).and_then(|f| f.into_full_user(db).ok()) {
-        status::Accepted(Some(format!("You Has Been logined {}", user.name)))
+        RResult::err(format!("You Has Been logined {}", user.name))
     } else {
         if data.check_able(db) {
-            let db = &*db.lock().expect("Lock Mutex Error");
-
             use crate::models::schema::users::dsl::*;
+            let db = to_rresult!(rs, db.get());
             let data = data.encode_password(password_hash);
 
-            diesel::insert_into(users)
-                .values(&data)
-                .execute(db)
-                .expect("Insert User Error");
+            let _ = to_rresult!(
+                rs,
+                crate::insert_into!(&db, users, &data),
+                "Failure To Add New User"
+            );
 
-            status::Accepted(Some(format!("New Account Create : name:{}", data.name)))
+            RResult::ok(format!("New Account Create : name:{}", data.name))
         } else {
-            status::Accepted(Some(format!("Email can not be use [{}|<=128] Or Name[{}|<=32],Password[8=<|{}|<=64] Over Limit Size", 
-            data.email,data.name,data.password)))
+            RResult::err(format!("Email can not be use [{}|<=128] Or Name[{}|<=32],Password[8=<|{}|<=64] Over Limit Size", 
+            data.email,data.name,data.password))
         }
     }
 }
@@ -120,19 +118,23 @@ fn change_passwd(
     user_auth: UserAuth,
     cookies: &CookieJar<'_>,
     db: &State<DatabaseConnection>,
-) -> Option<String> {
+) -> RResult<String> {
     let new_hash = password_hash(&data.new);
     if data.old == user_auth.paswd && data.new == data.new_conf && check_password_size(&data.new) {
-        let user = user_auth.into_full_user(db).ok()?;
-
-        let res = {
+        let user = to_rresult!(rs, user_auth.into_full_user(db));
+        {
             use crate::models::schema::users::dsl::*;
-            let db = db.lock().expect("Failure Lock");
-            diesel::update(users)
-                .filter(id.eq(user.id))
-                .set(password.eq(&new_hash))
-                .execute(&*db)
-                .ok()?
+            let db = db.get().expect("Failure Lock");
+            let temp = NewUser::from_au_pc(&user_auth, &data);
+            let t = update_first_or_create!(
+                &db,
+                User,
+                users,
+                temp,
+                pk=> user.id,
+                set => [password.eq(&new_hash)]
+            );
+            to_rresult!(rs, t);
         };
         // update cookies
         let mut ua = user_auth.clone();
@@ -141,8 +143,8 @@ fn change_passwd(
         let auth = AuthKey::new_cookie(COOKIE_NAME, ua, Duration::from_secs(AUTH_LIFE_TIME));
         cookies.add_private(auth);
 
-        Some(format!("change success,{}", res))
+        RResult::ok("change success".into())
     } else {
-        None
+        RResult::err("New password cannot the same with new || password len over size")
     }
 }

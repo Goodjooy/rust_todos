@@ -1,27 +1,32 @@
-use std::sync::{MutexGuard, PoisonError};
+use std::{
+    fmt::Display,
+    sync::{MutexGuard, PoisonError},
+};
 
 use diesel::mysql;
 
-pub enum AuthError<'a> {
+pub enum AuthError {
     Diesel(diesel::result::Error),
-    Mutex(MutexGuard<'a, mysql::MysqlConnection>),
-    ErrInfo(String)
+    ErrInfo(String),
 }
 
-impl<'a> From<PoisonError<MutexGuard<'a, mysql::MysqlConnection>>> for AuthError<'a> {
-    fn from(src: PoisonError<MutexGuard<'a, mysql::MysqlConnection>>) -> Self {
-        Self::Mutex(src.into_inner())
-    }
-}
-
-impl From<diesel::result::Error> for AuthError<'_> {
+impl From<diesel::result::Error> for AuthError {
     fn from(err: diesel::result::Error) -> Self {
         Self::Diesel(err)
     }
 }
 
-impl From<String> for AuthError<'_> {
+impl From<String> for AuthError {
     fn from(s: String) -> Self {
         Self::ErrInfo(s)
+    }
+}
+
+impl Display for AuthError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AuthError::Diesel(de) => de.fmt(f),
+            AuthError::ErrInfo(s) => s.fmt(f),
+        }
     }
 }

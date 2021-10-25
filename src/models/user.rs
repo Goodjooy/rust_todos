@@ -1,4 +1,6 @@
-#[derive(serde::Serialize, serde::Deserialize, diesel::Queryable, diesel::Identifiable)]
+#[derive(
+    serde::Serialize, serde::Deserialize, diesel::Queryable, diesel::Identifiable, Default,
+)]
 pub struct User {
     pub id: u32,
     pub name: String,
@@ -6,6 +8,8 @@ pub struct User {
     pub email: String,
     pub password: String,
 }
+
+use crate::forms::auth::{ChangePaswd, UserAuth};
 
 use super::schema::users;
 
@@ -18,3 +22,12 @@ pub struct NewUser<'s> {
     pub password: String,
 }
 
+impl<'a> NewUser<'a> {
+    pub fn from_au_pc(auth: &'a UserAuth, pwdch: &ChangePaswd) -> Self {
+        Self {
+            name: "",
+            email: &auth.email,
+            password: pwdch.new.to_string(),
+        }
+    }
+}
