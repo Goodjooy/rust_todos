@@ -6,7 +6,7 @@ use crate::{
     },
     generate_controller,
     models::user::{NewUser, User},
-    to_rresult, update_first_or_create,
+    to_rresult, update,
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 use rocket::{
@@ -57,8 +57,10 @@ fn user_auth(
             &db,
             User,
             users,
-            email.eq(&input.email),
-            password.eq(&hashed_pwd)
+            filter=>[
+                email.eq(&input.email),
+                password.eq(&hashed_pwd)
+                ]
         )
     };
     let user = to_rresult!(rs, res, "Wrong Password Or Email Address");
@@ -125,12 +127,10 @@ fn change_passwd(
         {
             use crate::models::schema::users::dsl::*;
             let db = db.get().expect("Failure Lock");
-            let temp = NewUser::from_au_pc(&user_auth, &data);
-            let t = update_first_or_create!(
+            let t = update!(
                 &db,
                 User,
                 users,
-                temp,
                 pk=> user.id,
                 set => [password.eq(&new_hash)]
             );

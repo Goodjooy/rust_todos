@@ -40,6 +40,15 @@ impl<T: Serialize> RResult<T> {
     }
 }
 
+impl<T: Serialize> Into<Result<T, String>> for RResult<T> {
+    fn into(self) -> Result<T, String> {
+        match self.err {
+            true => Err(self.emsg.unwrap()),
+            false => Ok(self.data.unwrap()),
+        }
+    }
+}
+
 impl<'r, T: Serialize> Responder<'r, 'static> for RResult<T> {
     fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'static> {
         let t = serde_json::to_vec(&self).or_else(|_e| Err(Status::InternalServerError))?;

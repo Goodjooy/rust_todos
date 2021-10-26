@@ -1,7 +1,4 @@
-use diesel::{
-    mysql,
-    r2d2::{ConnectionManager, Pool, PooledConnection},
-};
+use diesel::{mysql, r2d2::{ConnectionManager, Pool, PooledConnection}};
 use rocket::fairing::Result;
 use std::env;
 
@@ -65,7 +62,7 @@ macro_rules! first_or_create {
     };
 }
 #[macro_export]
-macro_rules! update_first_or_create {
+macro_rules! update {
     (
         $db:expr,
         $ty:ident,
@@ -91,28 +88,34 @@ macro_rules! update_first_or_create {
         $db:expr,
         $ty:ident,
         $table:ident,
-        $in_data:expr,
         pk => $pk:expr,
         set => [$($s:expr),*]
     ) => {
-        if let Ok(ud) = $table
-            .find($pk)
-            .first::<$ty>($db)
-        {
-            diesel::update(&ud)
+        diesel::update($table.find($pk))
                 $(.set($s))*
                 .execute($db)
-        } else {
-            diesel::insert_into($table)
-                .values(&$in_data)
-                .execute($db)
-        }
     };
+    (
+        $db:expr,
+        $ty:ident,
+        $table:ident,
+        filter => [ $($f:expr),* ],
+        set => [$($s:expr),*]
+    )=>{
+        diesel::update(
+            $table
+            $(.filter($f))*
+            )
+            $(.set($s))*
+        .execute($db)
+    }
 }
+
+
 
 #[macro_export]
 macro_rules! load_first {
-    ($db:expr,$ty:ident, $table:ident, $( $f:expr ),* ) => {
+    ($db:expr,$ty:ident, $table:ident, filter=>[$( $f:expr ),*]) => {
         $table
         $(.filter($f))*
         .first::<$ty>($db)
@@ -121,6 +124,15 @@ macro_rules! load_first {
         $table
         .find($pk)
         .first::<$ty>($db)
+    };
+}
+
+#[macro_export]
+macro_rules! load {
+    ($db:expr,$ty:ident, $table:ident, filter=>[$( $f:expr ),*]) => {
+        $table
+        $(.filter($f))*
+        .load::<$ty>($db)
     };
 }
 

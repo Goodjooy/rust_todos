@@ -1,9 +1,4 @@
-use std::{
-    fmt::Display,
-    sync::{MutexGuard, PoisonError},
-};
-
-use diesel::mysql;
+use std::fmt::Display;
 
 pub enum AuthError {
     Diesel(diesel::result::Error),
