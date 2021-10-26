@@ -5,6 +5,7 @@ use controllers::{auth::UserAuthCtrl, user_detail::UserDetailCtrl, Controller};
 #[macro_use]
 extern crate diesel;
 extern crate rocket;
+extern crate serde;
 
 mod controllers;
 mod database;

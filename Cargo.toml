@@ -6,10 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-diesel = { version = "1.4.4", features = ["mysql","r2d2"] }
 dotenv = "0.15.0"
 lazy_static = "1.4.0"
 rust-crypto = "^0.2"
+chrono = {version="0.4",features=["serde"]}
+
+[dependencies.diesel]
+version = "1.4.4" 
+features = ["mysql","r2d2","chrono"]
+
 
 [dependencies.serde]
 version= "1.0.130"

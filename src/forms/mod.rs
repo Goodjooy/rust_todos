@@ -1,3 +1,4 @@
+use rocket::outcome::Outcome;
 use std::io::Cursor;
 
 use rocket::{
@@ -9,6 +10,7 @@ use serde::Serialize;
 
 pub mod auth;
 pub mod user_detail;
+pub mod todo;
 
 #[derive(Serialize)]
 pub struct RResult<T: Serialize> {
@@ -37,6 +39,12 @@ impl<T: Serialize> RResult<T> {
     }
     pub fn err<I: ToString>(msg: I) -> Self {
         Self::new(true, Some(msg.to_string()), None)
+    }
+    pub fn into_outcome(self, info: Status) -> Outcome<T, (Status, String), ()> {
+        match self.err {
+            true => Outcome::Failure((info, self.emsg.unwrap())),
+            false => Outcome::Success(self.data.unwrap()),
+        }
     }
 }
 
