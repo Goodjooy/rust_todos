@@ -1,14 +1,17 @@
 use std::vec;
 
+use diesel::sql_types;
+
 pub mod auth;
+pub mod todos;
 pub mod user_detail;
 
-
+no_arg_sql_function!(last_insert_id, sql_types::Bigint, "LAST_INSERT_ID()");
 pub trait Controller {
-    fn routes()->Vec<rocket::Route>{
+    fn routes() -> Vec<rocket::Route> {
         vec![]
     }
-    fn base<'s>()->&'s str{
+    fn base<'s>() -> &'s str {
         "/"
     }
 }
@@ -19,7 +22,7 @@ macro_rules! generate_controller {
         impl crate::controllers::Controller for $name  {
             fn routes()->Vec<rocket::Route>{
                 rocket::routes![
-                    $( 
+                    $(
                         $routes
                     ),*
                 ]

@@ -26,8 +26,8 @@ impl<T: Serialize> RResult<T> {
 
     pub fn from_result<E: ToString>(res: Result<T, E>) -> Self {
         match res {
-            Ok(data) => Self::new(true, None, Some(data)),
-            Err(err) => Self::new(false, Some(err.to_string()), None),
+            Ok(data) => Self::new(false, None, Some(data)),
+            Err(err) => Self::new(true, Some(err.to_string()), None),
         }
     }
     pub fn from_option<E: ToString>(res: Option<T>, info: E) -> Self {

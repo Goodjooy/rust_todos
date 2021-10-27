@@ -1,3 +1,4 @@
+use crate::controllers::todos::TodoCtrl;
 use database::DatabaseConnection;
 
 use controllers::{auth::UserAuthCtrl, user_detail::UserDetailCtrl, Controller};
@@ -19,4 +20,5 @@ fn launch() -> _ {
         .manage(DatabaseConnection::new().expect("DB Connect can not establish"))
         .mount(UserAuthCtrl::base(), UserAuthCtrl::routes())
         .mount(UserDetailCtrl::base(), UserDetailCtrl::routes())
+        .mount(TodoCtrl::base(), TodoCtrl::routes())
 }

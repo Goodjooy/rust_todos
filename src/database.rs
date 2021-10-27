@@ -52,7 +52,7 @@ macro_rules! first_or_create {
             Ok(d) => d.into(),
             Err(_) => {
                 to_rresult!(rs, 
-                    diesel::insert_into(uesr_details)
+                    diesel::insert_into($t)
                     .values(&$tc)
                     .execute($db)
                 );
