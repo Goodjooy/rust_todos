@@ -1,6 +1,10 @@
-use diesel::{mysql, r2d2::{ConnectionManager, Pool, PooledConnection}};
+use diesel::{mysql, r2d2::{ConnectionManager, Pool, PooledConnection}, sql_types};
 use rocket::fairing::Result;
 use std::env;
+
+pub mod select_builder;
+
+no_arg_sql_function!(last_insert_id, sql_types::Bigint, "LAST_INSERT_ID()");
 
 pub struct DatabaseConnection {
     db: Pool<ConnectionManager<mysql::MysqlConnection>>,

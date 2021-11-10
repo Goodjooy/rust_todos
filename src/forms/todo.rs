@@ -5,7 +5,8 @@ use rocket::{
     outcome::Outcome,
 };
 
-#[derive(serde::Deserialize)]
+pub mod fromforms;
+#[derive(serde::Deserialize,serde::Serialize)]
 pub struct JTodo {
     pub title: String,
     pub descript: String,
@@ -47,7 +48,7 @@ impl<'r> FromData<'r> for JTodo {
     type Error = String;
 
     async fn from_data(
-        req: &'r rocket::Request<'_>,
+        _req: &'r rocket::Request<'_>,
         data: rocket::Data<'r>,
     ) -> Outcome<Self, (rocket::http::Status, Self::Error), rocket::Data<'r>> {
         let reader = data.open(512.kibibytes());

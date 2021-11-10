@@ -24,6 +24,8 @@ impl<T: Serialize> RResult<T> {
         RResult { err, emsg, data }
     }
 
+  
+
     pub fn from_result<E: ToString>(res: Result<T, E>) -> Self {
         match res {
             Ok(data) => Self::new(false, None, Some(data)),
@@ -53,6 +55,14 @@ impl<T: Serialize> Into<Result<T, String>> for RResult<T> {
         match self.err {
             true => Err(self.emsg.unwrap()),
             false => Ok(self.data.unwrap()),
+        }
+    }
+}
+impl<T: Serialize> Into<Option<T>> for RResult<T> {
+    fn into(self) -> Option<T> {
+        match self.err {
+            true =>None,
+            false => Some(self.data.unwrap()),
         }
     }
 }

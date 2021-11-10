@@ -1,0 +1,24 @@
+import {SpinBox} from "sixtyfps_widgets.60"; 
+
+App := Window{
+    preferred-width: 500px;
+    preferred-height: 500px;
+
+    title: "Todo Farm";
+
+    t:=Text{
+        text: "你好";
+        font-size: 14px;
+    }
+
+    in:=TextInput { 
+       text: "xinxi";
+       single-line: false;
+       x: 100px;
+       y: 50px; 
+       font-size: 25px;
+       color: #fa00fa;
+       
+     }
+    
+}

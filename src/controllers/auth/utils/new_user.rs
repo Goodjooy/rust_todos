@@ -1,5 +1,3 @@
-
-
 use diesel::{QueryDsl, RunQueryDsl};
 
 use crate::{database::DatabaseConnection, models::user::NewUser};

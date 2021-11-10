@@ -1,12 +1,9 @@
 use std::vec;
 
-use diesel::sql_types;
-
 pub mod auth;
 pub mod todos;
 pub mod user_detail;
 
-no_arg_sql_function!(last_insert_id, sql_types::Bigint, "LAST_INSERT_ID()");
 pub trait Controller {
     fn routes() -> Vec<rocket::Route> {
         vec![]
