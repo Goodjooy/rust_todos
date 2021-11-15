@@ -12,7 +12,7 @@ mod controllers;
 mod database;
 mod forms;
 mod models;
-
+mod utils;
 #[rocket::launch]
 fn launch() -> _ {
     rocket::build()

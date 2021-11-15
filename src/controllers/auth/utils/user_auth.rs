@@ -19,8 +19,8 @@ impl UserAuth {
             users.filter(id.eq(aid)).first::<User>(&*db)
         } else {
             users
-                .filter(email.eq(&self.email))
-                .filter(password.eq(&self.paswd))
+                .filter(email.eq(&*self.email))
+                .filter(password.eq(&*self.paswd))
                 .first::<User>(&*db)
         }?;
 

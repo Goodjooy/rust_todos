@@ -58,7 +58,7 @@ fn user_auth(
             User,
             users,
             filter=>[
-                email.eq(&input.email),
+                email.eq(&*input.email),
                 password.eq(&hashed_pwd)
                 ]
         )
@@ -122,7 +122,8 @@ fn change_passwd(
     db: &State<DatabaseConnection>,
 ) -> RResult<String> {
     let new_hash = password_hash(&data.new);
-    if data.old == user_auth.paswd && data.new == data.new_conf && check_password_size(&data.new) {
+    if &data.old == &user_auth.paswd && data.new == data.new_conf && check_password_size(&data.new)
+    {
         let user = to_rresult!(rs, user_auth.into_full_user(db));
         {
             use crate::models::schema::users::dsl::*;
