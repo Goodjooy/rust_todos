@@ -1,9 +1,14 @@
 use core::ops::Deref;
 use std::fmt::Debug;
+use std::ops::Add;
+use std::process::Output;
 use std::{error::Error, fmt::Display};
 
 use serde::de::{self};
 use serde::{de::Visitor, Deserialize, Serialize};
+
+mod matrix;
+
 
 #[derive(Clone)]
 pub struct LenLimitedString<const S: usize> {
@@ -136,5 +141,4 @@ impl Display for SizeError {
 }
 
 impl Error for SizeError {}
-
 
